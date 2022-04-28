@@ -1,13 +1,19 @@
-FROM golang:latest
+FROM golang:1.18.1 as build
+
+WORKDIR /src
+
+ARG GOOS=linux
+ARG CGO_ENABLED=0
 
 COPY . /src
+RUN go build && go test
 
-RUN cd /src && CGO_ENABLED=0 GOOS=linux go build -o /dogstatsd-local -a .
+###
 
 FROM scratch
 
-COPY --from=0 /dogstatsd-local .
+COPY --from=build /src/dogstatsd-local .
 EXPOSE 8125
 
 ENTRYPOINT ["/dogstatsd-local"]
-CMD ["/dogstatsd-local"]
+CMD ["--port", "8125"]
