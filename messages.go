@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -74,13 +75,13 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 	case "h":
 		metric.metricType = histogramMetricType
 	default:
-		return nil, errors.New("INVALID_MSG_INVALID_TYPE")
+		return nil, fmt.Errorf("INVALID_MSG_INVALID_TYPE %s", pieces[1])
 	}
 
 	// all values are stored as a float
 	floatValue, err := strconv.ParseFloat(metric.rawValue, 64)
 	if err != nil {
-		return nil, errors.New("INVALID_MSG_INVALID_VALUE")
+		return nil, fmt.Errorf("INVALID_MSG_INVALID_VALUE %s", metric.rawValue)
 	}
 	metric.floatValue = floatValue
 
@@ -93,7 +94,7 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 		if strings.HasPrefix(piece, "@") {
 			sampleRate, err := strconv.ParseFloat(piece[1:], 64)
 			if err != nil {
-				return nil, errors.New("E_INVALID_SAMPLE_RATE")
+				return nil, fmt.Errorf("INVALID_SAMPLE_RATE %s", piece[:1])
 			}
 			metric.sampleRate = sampleRate
 			continue
