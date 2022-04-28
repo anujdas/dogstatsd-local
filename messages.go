@@ -74,6 +74,8 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 		metric.metricType = timerMetricType
 	case "h":
 		metric.metricType = histogramMetricType
+	case "d":
+		metric.metricType = distributionMetricType
 	default:
 		return nil, fmt.Errorf("INVALID_MSG_INVALID_TYPE %s", pieces[1])
 	}
@@ -126,6 +128,8 @@ func (d dogstatsdMetricType) String() string {
 		return "timer"
 	case histogramMetricType:
 		return "histogram"
+	case distributionMetricType:
+		return "distribution"
 	}
 
 	return "unknown"
@@ -137,6 +141,7 @@ const (
 	setMetricType
 	timerMetricType
 	histogramMetricType
+	distributionMetricType
 )
 
 type dogstatsdMetric struct {
