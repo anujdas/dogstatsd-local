@@ -13,7 +13,7 @@ RUN go build && go test
 FROM scratch
 
 COPY --from=build /src/dogstatsd-local .
-EXPOSE 8125
+EXPOSE 8125/udp
 
 ENTRYPOINT ["/dogstatsd-local"]
 CMD ["--port", "8125"]
