@@ -74,24 +74,12 @@ $ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json
 {"name":"namespace.metric","type":"counter","values":[1,2],"sample_rate":1,"tags":["tag1","tag2:value","container_id":"c1"]}
 ```
 
-**dogstatsd-local** can be piped to any process that understands json via stdin. For example, to pretty print JSON with [jq](https://stedolan.github.io/jq/):
+**dogstatsd-local** can be piped to any process that understands json via stdin. For example, to pretty print the name and first value with [jq](https://stedolan.github.io/jq/):
 
 ```bash
-$ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json | jq .
-{
-  "name": "namespace.metric",
-  "type": "counter",
-  "values": [
-    1,
-    2
-  ],
-  "sample_rate": 1,
-  "tags": [
-    "tag1",
-    "tag2:value"
-  ],
-  "container_id": "c1"
-}
+$ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json | jq ".name,.values[0]"
+"namespace.metric"
+1
 ```
 
 ## TODO
