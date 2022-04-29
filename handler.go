@@ -12,9 +12,10 @@ type dogstatsdJsonMetric struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 
-	Values     []float64 `json:"values"`
-	SampleRate float64   `json:"sample_rate"`
-	Tags       []string  `json:"tags"`
+	Values      []float64 `json:"values"`
+	SampleRate  float64   `json:"sample_rate"`
+	Tags        []string  `json:"tags"`
+	ContainerId string    `json:"container_id"`
 }
 
 func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
@@ -40,11 +41,12 @@ func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
 		}
 
 		jsonMsg := dogstatsdJsonMetric{
-			Name:       metric.name,
-			Type:       metric.metricType.String(),
-			Values:     floatValues,
-			SampleRate: metric.sampleRate,
-			Tags:       metric.tags,
+			Name:        metric.name,
+			Type:        metric.metricType.String(),
+			Values:      floatValues,
+			SampleRate:  metric.sampleRate,
+			Tags:        metric.tags,
+			ContainerId: metric.containerId,
 		}
 
 		enc := json.NewEncoder(os.Stdout)

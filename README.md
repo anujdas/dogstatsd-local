@@ -64,14 +64,14 @@ metric:counter|namespace.metric|1.00,2.00  tag1 tag2:value
 
 When writing a metric such as:
 ```bash
-$ printf "namespace.metric:1:2|c|@1|#tag1,tag2:value" | nc -cu localhost 8125
+$ printf "namespace.metric:1:2|c|@1|#tag1,tag2:value|c:c1" | nc -cu localhost 8125
 ```
 
 Running **dogstatsd-local** with the `-format json` flag will output json:
 
 ```bash
 $ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json
-{"name":"namespace.metric","type":"counter","values":[1,2],"sample_rate":1,"tags":["tag1","tag2:value"]}
+{"name":"namespace.metric","type":"counter","values":[1,2],"sample_rate":1,"tags":["tag1","tag2:value","container_id":"c1"]}
 ```
 
 **dogstatsd-local** can be piped to any process that understands json via stdin. For example, to pretty print JSON with [jq](https://stedolan.github.io/jq/):
@@ -89,7 +89,8 @@ $ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json | jq .
   "tags": [
     "tag1",
     "tag2:value"
-  ]
+  ],
+  "container_id": "c1"
 }
 ```
 
