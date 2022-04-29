@@ -1,11 +1,11 @@
 # Dogstatsd Local
-> A local implementation of the dogstatsd protocol from [Datadog](https://www.datadog.com)
+> A local implementation of the dogstatsd protocol (<=v1.2) from [Datadog](https://www.datadog.com)
 
 ## Why?
 
 [Datadog](https://www.datadog.com) is great for production application metric aggregation. This project was inspired by the need to inspect and debug metrics _before_ sending them to `datadog`.
 
-`dogstatsd-local` is a small program which understands the `dogstatsd` and `statsd` protocols. It listens on a local UDP server and writes metrics, events and service checks per the [dogstatsd protocol](https://docs.datadoghq.com/guides/dogstatsd/) to `stdout` in user configurable formats.
+`dogstatsd-local` is a small program which understands the `dogstatsd` and `statsd` protocols. It listens on a local UDP server and writes metrics, events and service checks per the [dogstatsd protocol](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/) to `stdout` in user configurable formats.
 
 This can be helpful for _debugging_ metrics themselves, and to prevent polluting datadog with noisy metrics from a development environment. **dogstatsd-local** can also be used to pipe metrics as json to other processes for further processing.
 
@@ -17,17 +17,13 @@ This is a go application with no external dependencies. Building should be as si
 
 Once compiled, the `dogstatsd-local` binary can be run directly:
 ```bash
-$ ./dogstatsd-local -port=8126
+$ ./dogstatsd-local -port 8126
 ```
-
-### Prebuilt Binaries
-
-**Coming soon**
 
 ### Docker
 
 ```bash
-$ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local
+$ docker run -p 8125:8125/udp anujdas/dogstatsd-local
 ```
 
 ## Sample Formats
@@ -37,14 +33,15 @@ $ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local
 When writing a metric such as:
 
 ```bash
-$ printf "namespace.metric:1|c|#test" | nc -cu  localhost 8125
+$ printf "namespace.metric:1:2|c|@1|#tag1,tag2:value" | nc -cu localhost 8125
 ```
 
 Running **dogstatsd-local** with the `-format raw` flag will output the plain udp packet:
 
 ```bash
-$ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local -format raw
-2017/12/03 23:11:31 namespace.metric.name:1|c|@1.00|#tag1
+$ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format raw
+namespace.metric:1:2|c|@1|#tag1,tag2:value
+
 ```
 
 ### Human
@@ -52,14 +49,14 @@ $ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local -format raw
 When writing a metric such as:
 
 ```bash
-$ printf "namespace.metric:1|c|#test" | nc -cu  localhost 8125
+$ printf "namespace.metric:1:2|c|@1|#tag1,tag2:value" | nc -cu localhost 8125
 ```
 
 Running **dogstatsd-local** with the `-format human` flag will output a human readable metric:
 
 ```bash
-$ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local -format human
-metric:counter|namespace.metric|1.00  test
+$ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format human
+metric:counter|namespace.metric|1.00,2.00  tag1 tag2:value
 
 ```
 
@@ -67,31 +64,31 @@ metric:counter|namespace.metric|1.00  test
 
 When writing a metric such as:
 ```bash
-$ printf "namespace.metric:1|c|#test|extra" | nc -cu  localhost 8125
+$ printf "namespace.metric:1:2|c|@1|#tag1,tag2:value" | nc -cu localhost 8125
 ```
 
 Running **dogstatsd-local** with the `-format json` flag will output json:
 
 ```bash
-$ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local -format json | jq .
-{"namespace":"namespace","name":"metric","path":"namespace.metric","value":1,"extras":["extra"],"sample_rate":1,"tags":["test"]}
+$ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json
+{"name":"namespace.metric","type":"counter","values":[1,2],"sample_rate":1,"tags":["tag1","tag2:value"]}
 ```
 
 **dogstatsd-local** can be piped to any process that understands json via stdin. For example, to pretty print JSON with [jq](https://stedolan.github.io/jq/):
 
 ```bash
-$ docker run -p 8125:8125/udp jonmorehouse/dogstatsd-local -format json | jq .
+$ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json | jq .
 {
-  "namespace": "namespace",
-  "name": "metric",
-  "path": "namespace.metric",
-  "value": 1,
-  "extras": [
-    "extra"
+  "name": "namespace.metric",
+  "type": "counter",
+  "values": [
+    1,
+    2
   ],
   "sample_rate": 1,
   "tags": [
-    "test"
+    "tag1",
+    "tag2:value"
   ]
 }
 ```
