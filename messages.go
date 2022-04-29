@@ -161,6 +161,8 @@ func (d dogstatsdMetric) Type() dogstatsdMsgType {
 	return metricMsgType
 }
 
+// TODO: https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=servicechecks
+// _sc|<NAME>|<STATUS>|d:<TIMESTAMP>|h:<HOSTNAME>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>|m:<SERVICE_CHECK_MESSAGE>
 func parseDogstatsdServiceCheckMsg(buf []byte) (dogstatsdMsg, error) {
 	return nil, errors.New("dogstatsd service check messages not supported ...")
 }
@@ -178,6 +180,8 @@ func (d dogstatsdServiceCheck) Data() []byte {
 	return d.data
 }
 
+// TODO: https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=events
+// _e{<TITLE_UTF8_LENGTH>,<TEXT_UTF8_LENGTH>}:<TITLE>|<TEXT>|d:<TIMESTAMP>|h:<HOSTNAME>|p:<PRIORITY>|t:<ALERT_TYPE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>
 func parseDogstatsdEventMsg(buf []byte) (dogstatsdMsg, error) {
 	return nil, errors.New("dogstatsd event messages not supported ...")
 }
