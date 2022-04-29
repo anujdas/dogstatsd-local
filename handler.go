@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 type dogstatsdJsonMetric struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 
-	Value      float64  `json:"value"`
-	Extras     []string `json:"extras"`
-	SampleRate float64  `json:"sample_rate"`
-	Tags       []string `json:"tags"`
+	Values     []float64 `json:"values"`
+	SampleRate float64   `json:"sample_rate"`
+	Tags       []string  `json:"tags"`
 }
 
 func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
@@ -34,11 +34,15 @@ func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
 			log.Fatalf("Programming error: invalid Type() = type matching")
 		}
 
+		floatValues := make([]float64, 0)
+		for _, value := range metric.values {
+			floatValues = append(floatValues, value.numeric)
+		}
+
 		jsonMsg := dogstatsdJsonMetric{
 			Name:       metric.name,
 			Type:       metric.metricType.String(),
-			Value:      metric.floatValue,
-			Extras:     metric.extras,
+			Values:     floatValues,
 			SampleRate: metric.sampleRate,
 			Tags:       metric.tags,
 		}
@@ -66,12 +70,18 @@ func newHumanDogstatsdMsgHandler(extraTags []string) msgHandler {
 			return nil
 		}
 
-		tmpl := "metric:%s|%s|%.2f"
-		str := fmt.Sprintf(tmpl, metric.metricType.String(), metric.name, metric.floatValue)
+		values := make([]string, 0)
+		for _, value := range metric.values {
+			strValue := fmt.Sprintf("%.2f", value.numeric)
+			if metric.metricType == timerMetricType {
+				strValue += "ms"
+			}
 
-		if metric.metricType == timerMetricType {
-			str += "ms"
+			values = append(values, strValue)
 		}
+
+		tmpl := "metric:%s|%s|%s"
+		str := fmt.Sprintf(tmpl, metric.metricType.String(), metric.name, strings.Join(values, ","))
 
 		// iterate through tags
 		for _, tag := range append(extraTags, metric.tags...) {

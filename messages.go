@@ -38,23 +38,24 @@ type dogstatsdMsg interface {
 func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 	metric := dogstatsdMetric{
 		ts:         time.Now(),
-		tags:       make([]string, 0),
+		values:     make([]dogstatsdMetricValue, 0),
 		sampleRate: 1.0,
+		tags:       make([]string, 0),
 	}
 
-	// sample message: metric.name:value|type|@sample_rate|#tag1:value,tag2
+	// sample message: metric.name:value1:value2|type|@sample_rate|#tag1:value,tag2|c:container_id
 	pieces := strings.Split(string(buf), "|")
 	if len(pieces) < 2 {
 		return nil, errors.New("INVALID_MSG_MISSING_NAME_VALUE_OR_TYPE")
 	}
 
-	addrAndValue := strings.Split(pieces[0], ":")
-	if len(addrAndValue) < 2 {
+	addrAndValues := strings.Split(pieces[0], ":")
+	if len(addrAndValues) < 2 {
 		return nil, fmt.Errorf("INVALID_MSG_MISSING_NAME_AND_VALUE (%s)", pieces[0])
 	}
 
-	metric.name = addrAndValue[0]
-	metric.rawValue = addrAndValue[1]
+	metric.name = addrAndValues[0]
+	rawValues := addrAndValues[1:]
 
 	switch pieces[1] {
 	case "c":
@@ -73,18 +74,26 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 		return nil, fmt.Errorf("INVALID_MSG_INVALID_TYPE (%s)", pieces[1])
 	}
 
-	// all values are stored as a float
-	floatValue, err := strconv.ParseFloat(metric.rawValue, 64)
-	if err != nil {
-		return nil, fmt.Errorf("INVALID_MSG_INVALID_VALUE (%s)", metric.rawValue)
-	}
-	metric.floatValue = floatValue
+	// all numeric values are ints or floats, stored as floats
+	for _, rawValue := range rawValues {
+		value := dogstatsdMetricValue{
+			raw: rawValue,
+		}
 
-	if metric.metricType == timerMetricType {
-		metric.durationValue = time.Duration(metric.floatValue) / time.Millisecond
+		floatValue, err := strconv.ParseFloat(rawValue, 64)
+		if err != nil {
+			return nil, fmt.Errorf("INVALID_MSG_INVALID_VALUE (%s)", rawValue)
+		}
+		value.numeric = floatValue
+
+		if metric.metricType == timerMetricType {
+			value.duration = time.Duration(value.numeric) / time.Millisecond
+		}
+
+		metric.values = append(metric.values, value)
 	}
 
-	// parse out sample rate, tags and any extras
+	// parse out sample rate, tags, container id, and any extras
 	for _, piece := range pieces[2:] {
 		if strings.HasPrefix(piece, "@") {
 			sampleRate, err := strconv.ParseFloat(piece[1:], 64)
@@ -98,6 +107,11 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 		if strings.HasPrefix(piece, "#") {
 			tags := strings.Split(piece[1:], ",")
 			metric.tags = append(metric.tags, tags...)
+			continue
+		}
+
+		if strings.HasPrefix(piece, "c:") {
+			metric.containerId = piece[2:]
 			continue
 		}
 
@@ -137,20 +151,25 @@ const (
 	distributionMetricType
 )
 
+type dogstatsdMetricValue struct {
+	raw      string
+	numeric  float64
+	duration time.Duration
+}
+
 type dogstatsdMetric struct {
 	data []byte
 	ts   time.Time
 
 	name string
 
-	metricType    dogstatsdMetricType
-	rawValue      string
-	floatValue    float64
-	durationValue time.Duration
+	metricType dogstatsdMetricType
+	values     []dogstatsdMetricValue
 
-	extras     []string
-	tags       []string
-	sampleRate float64
+	sampleRate  float64
+	tags        []string
+	containerId string
+	extras      []string
 }
 
 func (d dogstatsdMetric) Data() []byte {
