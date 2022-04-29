@@ -50,17 +50,10 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 
 	addrAndValue := strings.Split(pieces[0], ":")
 	if len(addrAndValue) < 2 {
-		return nil, errors.New("INVALID_MSG_MISSING_NAME_AND_VALUE")
+		return nil, fmt.Errorf("INVALID_MSG_MISSING_NAME_AND_VALUE (%s)", pieces[0])
 	}
 
-	namespaceAndName := strings.SplitN(addrAndValue[0], ".", 2)
-	if len(namespaceAndName) > 1 {
-		metric.namespace = namespaceAndName[0]
-		metric.name = namespaceAndName[1]
-	} else {
-		metric.name = namespaceAndName[0]
-	}
-
+	metric.name = addrAndValue[0]
 	metric.rawValue = addrAndValue[1]
 
 	switch pieces[1] {
@@ -148,8 +141,7 @@ type dogstatsdMetric struct {
 	data []byte
 	ts   time.Time
 
-	namespace string
-	name      string
+	name string
 
 	metricType    dogstatsdMetricType
 	rawValue      string

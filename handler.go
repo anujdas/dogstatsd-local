@@ -8,9 +8,8 @@ import (
 )
 
 type dogstatsdJsonMetric struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Path      string `json:"path"`
+	Name string `json:"name"`
+	Type string `json:"type"`
 
 	Value      float64  `json:"value"`
 	Extras     []string `json:"extras"`
@@ -36,9 +35,8 @@ func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
 		}
 
 		jsonMsg := dogstatsdJsonMetric{
-			Namespace:  metric.namespace,
 			Name:       metric.name,
-			Path:       fmt.Sprintf("%s.%s", metric.namespace, metric.name),
+			Type:       metric.metricType.String(),
 			Value:      metric.floatValue,
 			Extras:     metric.extras,
 			SampleRate: metric.sampleRate,
@@ -68,8 +66,8 @@ func newHumanDogstatsdMsgHandler(extraTags []string) msgHandler {
 			return nil
 		}
 
-		tmpl := "metric:%s|%s.%s|%.2f"
-		str := fmt.Sprintf(tmpl, metric.metricType.String(), metric.namespace, metric.name, metric.floatValue)
+		tmpl := "metric:%s|%s|%.2f"
+		str := fmt.Sprintf(tmpl, metric.metricType.String(), metric.name, metric.floatValue)
 
 		if metric.metricType == timerMetricType {
 			str += "ms"
