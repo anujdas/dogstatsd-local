@@ -77,13 +77,13 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 	case "d":
 		metric.metricType = distributionMetricType
 	default:
-		return nil, fmt.Errorf("INVALID_MSG_INVALID_TYPE %s", pieces[1])
+		return nil, fmt.Errorf("INVALID_MSG_INVALID_TYPE (%s)", pieces[1])
 	}
 
 	// all values are stored as a float
 	floatValue, err := strconv.ParseFloat(metric.rawValue, 64)
 	if err != nil {
-		return nil, fmt.Errorf("INVALID_MSG_INVALID_VALUE %s", metric.rawValue)
+		return nil, fmt.Errorf("INVALID_MSG_INVALID_VALUE (%s)", metric.rawValue)
 	}
 	metric.floatValue = floatValue
 
@@ -96,7 +96,7 @@ func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 		if strings.HasPrefix(piece, "@") {
 			sampleRate, err := strconv.ParseFloat(piece[1:], 64)
 			if err != nil {
-				return nil, fmt.Errorf("INVALID_SAMPLE_RATE %s", piece[:1])
+				return nil, fmt.Errorf("INVALID_SAMPLE_RATE (%s)", piece[:1])
 			}
 			metric.sampleRate = sampleRate
 			continue
