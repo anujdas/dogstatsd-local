@@ -199,14 +199,155 @@ func (d dogstatsdServiceCheck) Data() []byte {
 	return d.data
 }
 
-// TODO: https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=events
+// docs: https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=events
 // _e{<TITLE_UTF8_LENGTH>,<TEXT_UTF8_LENGTH>}:<TITLE>|<TEXT>|d:<TIMESTAMP>|h:<HOSTNAME>|p:<PRIORITY>|t:<ALERT_TYPE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>
 func parseDogstatsdEventMsg(buf []byte) (dogstatsdMsg, error) {
-	return nil, errors.New("dogstatsd event messages not supported ...")
+	event := dogstatsdEvent{
+		ts:   time.Now(),
+		tags: make([]string, 0),
+	}
+
+	pieces := strings.Split(string(buf), "|")
+	if len(pieces) < 2 {
+		return nil, errors.New("INVALID_MSG_MISSING_TITLE_OR_TEXT")
+	}
+
+	lengthsAndTitle := strings.Split(pieces[0], ":")
+	if len(lengthsAndTitle) != 2 {
+		return nil, fmt.Errorf("INVALID_MSG_MISSING_TITLE (%s)", pieces[0])
+	}
+	event.title = lengthsAndTitle[1]
+	event.text = pieces[1]
+
+	for _, piece := range pieces[2:] {
+		if strings.HasPrefix(piece, "d:") {
+			unixTime, err := strconv.ParseInt(piece[2:], 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("INVALID_TIMESTAMP (%s)", piece[2:])
+			}
+
+			event.ts = time.Unix(unixTime, 0)
+			continue
+		}
+
+		if strings.HasPrefix(piece, "h:") {
+			event.hostname = piece[2:]
+			continue
+		}
+
+		if strings.HasPrefix(piece, "k:") {
+			event.aggregationKey = piece[2:]
+			continue
+		}
+
+		if strings.HasPrefix(piece, "p:") {
+			switch piece[2:] {
+			case "low":
+				event.priority = lowEventPriority
+			case "normal":
+				event.priority = normalEventPriority
+			default:
+				return nil, fmt.Errorf("INVALID_MSG_INVALID_PRIORITY (%s)", piece[2:])
+			}
+
+			continue
+		}
+
+		if strings.HasPrefix(piece, "s:") {
+			event.sourceType = piece[2:]
+			continue
+		}
+
+		if strings.HasPrefix(piece, "t:") {
+			switch piece[2:] {
+			case "info":
+				event.alertType = infoEventAlertType
+			case "success":
+				event.alertType = successEventAlertType
+			case "warning":
+				event.alertType = warningEventAlertType
+			case "error":
+				event.alertType = errorEventAlertType
+			default:
+				return nil, fmt.Errorf("INVALID_MSG_INVALID_ALERT_TYPE (%s)", piece[2:])
+			}
+
+			continue
+		}
+
+		if strings.HasPrefix(piece, "#") {
+			tags := strings.Split(piece[1:], ",")
+			event.tags = append(event.tags, tags...)
+			continue
+		}
+
+		event.extras = append(event.extras, piece)
+	}
+
+	return event, nil
+}
+
+type dogstatsdEventPriority int
+
+const (
+	normalEventPriority dogstatsdEventPriority = iota
+	lowEventPriority
+)
+
+func (p dogstatsdEventPriority) String() string {
+	switch p {
+	case normalEventPriority:
+		return "normal"
+	case lowEventPriority:
+		return "low"
+	}
+	return "unknown"
+}
+
+type dogstatsdEventAlertType int
+
+const (
+	infoEventAlertType dogstatsdEventAlertType = iota
+	successEventAlertType
+	warningEventAlertType
+	errorEventAlertType
+)
+
+func (a dogstatsdEventAlertType) String() string {
+	switch a {
+	case infoEventAlertType:
+		return "info"
+	case successEventAlertType:
+		return "success"
+	case warningEventAlertType:
+		return "warning"
+	case errorEventAlertType:
+		return "error"
+	}
+	return "unknown"
 }
 
 type dogstatsdEvent struct {
-	data []byte
+	data  []byte
+	title string
+	text  string
+
+	ts             time.Time
+	hostname       string
+	aggregationKey string
+	priority       dogstatsdEventPriority
+	sourceType     string
+	alertType      dogstatsdEventAlertType
+	tags           []string
+	extras         []string
+}
+
+func (e dogstatsdEvent) Data() []byte {
+	return e.data
+}
+
+func (e dogstatsdEvent) Type() dogstatsdMsgType {
+	return eventMsgType
 }
 
 // parse a dogstatsdMsg, returning the correct message back

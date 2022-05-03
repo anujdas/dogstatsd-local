@@ -85,5 +85,5 @@ $ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json | jq ".name,.
 ## TODO
 
 - [ ] support datadog service checks
-- [ ] support datadog events
+- [x] support datadog events
 - [ ] support interval aggregation of percentiles
