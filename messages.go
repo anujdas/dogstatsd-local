@@ -37,6 +37,7 @@ type dogstatsdMsg interface {
 
 func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 	metric := dogstatsdMetric{
+		data:       buf,
 		ts:         time.Now(),
 		values:     []dogstatsdMetricValue{},
 		sampleRate: 1.0,

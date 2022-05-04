@@ -77,6 +77,7 @@ func TestParseDogstatsdMetricMsg(t *testing.T) {
 		t.Run(tt.rawMsg, func(t *testing.T) {
 			msg, _ := parseDogstatsdMsg([]byte(tt.rawMsg))
 			assert.Equal(msg.Type(), metricMsgType)
+			assert.Equal(msg.Data(), []byte(tt.rawMsg))
 
 			metric, _ := msg.(dogstatsdMetric)
 			assert.Equal(metric.name, tt.name)
