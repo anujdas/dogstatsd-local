@@ -181,15 +181,98 @@ func (d dogstatsdMetric) Type() dogstatsdMsgType {
 	return metricMsgType
 }
 
-// TODO: https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=servicechecks
 // _sc|<NAME>|<STATUS>|d:<TIMESTAMP>|h:<HOSTNAME>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>|m:<SERVICE_CHECK_MESSAGE>
 func parseDogstatsdServiceCheckMsg(buf []byte) (dogstatsdMsg, error) {
-	return nil, errors.New("dogstatsd service check messages not supported ...")
+	serviceCheck := dogstatsdServiceCheck{
+		data:     buf,
+		ts:       time.Now(),
+		tags:     []string{},
+		extras:   []string{},
+	}
+
+	pieces := strings.Split(string(buf), "|")
+	if len(pieces) < 3 {
+		return nil, errors.New("INVALID_MSG_MISSING_NAME_OR_STATUS")
+	}
+
+	serviceCheck.name = pieces[1]
+
+	switch pieces[2] {
+	case "0":
+		serviceCheck.status = okServiceCheckStatusType
+	case "1":
+		serviceCheck.status = warningServiceCheckStatusType
+	case "2":
+		serviceCheck.status = criticalServiceCheckStatusType
+	case "3":
+		serviceCheck.status = unknownServiceCheckStatusType
+	default:
+		return nil, fmt.Errorf("INVALID_MSG_INVALID_STATUS (%s)", pieces[2])
+	}
+
+	for _, piece := range pieces[3:] {
+		if strings.HasPrefix(piece, "d:") {
+			unixTime, err := strconv.ParseInt(piece[2:], 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("INVALID_TIMESTAMP (%s)", piece[2:])
+			}
+
+			serviceCheck.ts = time.Unix(unixTime, 0)
+			continue
+		}
+
+		if strings.HasPrefix(piece, "h:") {
+			serviceCheck.hostname = piece[2:]
+			continue
+		}
+
+		if strings.HasPrefix(piece, "#") {
+			tags := strings.Split(piece[1:], ",")
+			serviceCheck.tags = append(serviceCheck.tags, tags...)
+			continue
+		}
+
+		if strings.HasPrefix(piece, "m:") {
+			serviceCheck.message = piece[2:]
+			continue
+		}
+
+		serviceCheck.extras = append(serviceCheck.extras, piece)
+	}
+
+	return serviceCheck, nil
 }
 
-// service check
+type dogstatsdServiceCheckStatus int
+
+const (
+	okServiceCheckStatusType dogstatsdServiceCheckStatus = iota
+	warningServiceCheckStatusType
+	criticalServiceCheckStatusType
+	unknownServiceCheckStatusType
+)
+
+func (s dogstatsdServiceCheckStatus) String() string {
+	switch s {
+	case okServiceCheckStatusType:
+		return "OK"
+	case warningServiceCheckStatusType:
+		return "WARNING"
+	case criticalServiceCheckStatusType:
+		return "CRITICAL"
+	}
+	return "UNKNOWN"
+}
+
 type dogstatsdServiceCheck struct {
-	data []byte
+	data     []byte
+	name     string
+	status   dogstatsdServiceCheckStatus
+	ts       time.Time
+	hostname string
+	tags     []string
+	message  string
+	extras   []string
 }
 
 func (dogstatsdServiceCheck) Type() dogstatsdMsgType {
@@ -358,7 +441,7 @@ func parseDogstatsdMsg(buf []byte) (dogstatsdMsg, error) {
 		return parseDogstatsdEventMsg(buf)
 	}
 
-	if bytes.HasPrefix(buf, []byte("_sc{")) {
+	if bytes.HasPrefix(buf, []byte("_sc")) {
 		return parseDogstatsdServiceCheckMsg(buf)
 	}
 

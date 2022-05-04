@@ -81,9 +81,3 @@ $ docker run -p 8125:8125/udp anujdas/dogstatsd-local -format json | jq ".name,.
 "namespace.metric"
 1
 ```
-
-## TODO
-
-- [ ] support datadog service checks
-- [x] support datadog events
-- [ ] support interval aggregation of percentiles

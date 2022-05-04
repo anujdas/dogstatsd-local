@@ -168,9 +168,56 @@ func TestParseDogstatsdEventMsg(t *testing.T) {
 			assert.Equal(tt.sourceType, event.sourceType)
 			assert.Equal(tt.alertType, event.alertType)
 			assert.Equal(tt.tags, event.tags)
+			assert.Empty(event.extras)
 		})
 	}
 }
 
 func TestParseDogstatsdServiceCheckMsg(t *testing.T) {
+	var tests = []struct {
+		rawMsg   string
+		name     string
+		status   dogstatsdServiceCheckStatus
+		ts       time.Time
+		hostname string
+		tags     []string
+		message  string
+	}{
+		{
+			"_sc|Redis connection|2|#env:dev|m:Redis connection timed out after 10s",
+			"Redis connection",
+			criticalServiceCheckStatusType,
+			time.Now(),
+			"",
+			[]string{"env:dev"},
+			"Redis connection timed out after 10s",
+		},
+		{
+			"_sc|DB connection|0|d:10|h:host.name|#env:ci,key:1,val|m:Nothing to report",
+			"DB connection",
+			okServiceCheckStatusType,
+			time.Unix(10, 0),
+			"host.name",
+			[]string{"env:ci","key:1", "val"},
+			"Nothing to report",
+		},
+	}
+
+	assert := assert.New(t)
+	for _, tt := range tests {
+		t.Run(tt.rawMsg, func(t *testing.T) {
+			msg, _ := parseDogstatsdMsg([]byte(tt.rawMsg))
+			assert.Equal(serviceCheckMsgType, msg.Type())
+			assert.Equal([]byte(tt.rawMsg), msg.Data())
+
+			serviceCheck, _ := msg.(dogstatsdServiceCheck)
+			assert.Equal(tt.name, serviceCheck.name)
+			assert.Equal(tt.status, serviceCheck.status)
+			assert.InDelta(tt.ts.UnixMicro(), serviceCheck.ts.UnixMicro(), 100)
+			assert.Equal(tt.hostname, serviceCheck.hostname)
+			assert.Equal(tt.tags, serviceCheck.tags)
+			assert.Equal(tt.message, serviceCheck.message)
+			assert.Empty(serviceCheck.extras)
+		})
+	}
 }
