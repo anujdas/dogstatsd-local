@@ -204,6 +204,7 @@ func (d dogstatsdServiceCheck) Data() []byte {
 // _e{<TITLE_UTF8_LENGTH>,<TEXT_UTF8_LENGTH>}:<TITLE>|<TEXT>|d:<TIMESTAMP>|h:<HOSTNAME>|p:<PRIORITY>|t:<ALERT_TYPE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>
 func parseDogstatsdEventMsg(buf []byte) (dogstatsdMsg, error) {
 	event := dogstatsdEvent{
+		data: buf,
 		ts:   time.Now(),
 		tags: []string{},
 	}
