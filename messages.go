@@ -38,9 +38,9 @@ type dogstatsdMsg interface {
 func parseDogstatsdMetricMsg(buf []byte) (dogstatsdMsg, error) {
 	metric := dogstatsdMetric{
 		ts:         time.Now(),
-		values:     make([]dogstatsdMetricValue, 0),
+		values:     []dogstatsdMetricValue{},
 		sampleRate: 1.0,
-		tags:       make([]string, 0),
+		tags:       []string{},
 	}
 
 	// sample message: metric.name:value1:value2|type|@sample_rate|#tag1:value,tag2|c:container_id
@@ -204,7 +204,7 @@ func (d dogstatsdServiceCheck) Data() []byte {
 func parseDogstatsdEventMsg(buf []byte) (dogstatsdMsg, error) {
 	event := dogstatsdEvent{
 		ts:   time.Now(),
-		tags: make([]string, 0),
+		tags: []string{},
 	}
 
 	pieces := strings.Split(string(buf), "|")
