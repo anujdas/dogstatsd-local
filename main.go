@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 )
 
@@ -65,16 +64,14 @@ func main() {
 	host := flag.String("host", "0.0.0.0", "bind address")
 	port := flag.Int("port", 8125, "listen port")
 	format := flag.String("format", "stdout", "output format: json|std|raw")
-	rawTags := flag.String("tags", "", "extra tags: comma delimited")
 	flag.Parse()
 
-	extraTags := strings.Split(*rawTags, ",")
 	var handler msgHandler
 
 	if *format == "json" {
-		handler = newJsonDogstatsdMsgHandler(extraTags)
+		handler = newJsonDogstatsdMsgHandler()
 	} else if *format == "human" {
-		handler = newHumanDogstatsdMsgHandler(extraTags)
+		handler = newHumanDogstatsdMsgHandler()
 	} else {
 		handler = newRawDogstatsdMsgHandler()
 	}

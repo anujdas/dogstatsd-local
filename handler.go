@@ -18,7 +18,7 @@ type dogstatsdJsonMetric struct {
 	ContainerId string    `json:"container_id"`
 }
 
-func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
+func newJsonDogstatsdMsgHandler() msgHandler {
 	return func(msg []byte) error {
 		dMsg, err := parseDogstatsdMsg(msg)
 		if err != nil {
@@ -59,7 +59,7 @@ func newJsonDogstatsdMsgHandler(extraTags []string) msgHandler {
 	}
 }
 
-func newHumanDogstatsdMsgHandler(extraTags []string) msgHandler {
+func newHumanDogstatsdMsgHandler() msgHandler {
 	return func(msg []byte) error {
 		dMsg, err := parseDogstatsdMsg(msg)
 		if err != nil {
@@ -67,8 +67,9 @@ func newHumanDogstatsdMsgHandler(extraTags []string) msgHandler {
 			return nil
 		}
 
-		metric, ok := dMsg.(dogstatsdMetric)
-		if dMsg.Type() != metricMsgType || !ok {
+		metric, _ := dMsg.(dogstatsdMetric)
+		if dMsg.Type() != metricMsgType {
+			fmt.Println(string(dMsg.Data()))
 			return nil
 		}
 
@@ -82,16 +83,16 @@ func newHumanDogstatsdMsgHandler(extraTags []string) msgHandler {
 			values = append(values, strValue)
 		}
 
-		tmpl := "metric:%s|%s|%s"
-		str := fmt.Sprintf(tmpl, metric.metricType.String(), metric.name, strings.Join(values, ","))
+		str := fmt.Sprintf(
+			"metric:%s|%s|%s %s",
+			metric.metricType.String(),
+			metric.name,
+			strings.Join(values, ","),
+			strings.Join(metric.tags, " "),
+		)
 
-		// iterate through tags
-		for _, tag := range append(extraTags, metric.tags...) {
-			str += " " + tag
-		}
+		fmt.Println(str)
 
-		fmt.Fprintf(os.Stdout, str)
-		fmt.Fprintf(os.Stdout, "\n")
 		return nil
 	}
 }
