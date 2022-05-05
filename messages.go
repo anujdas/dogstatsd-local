@@ -184,10 +184,10 @@ func (d dogstatsdMetric) Type() dogstatsdMsgType {
 // _sc|<NAME>|<STATUS>|d:<TIMESTAMP>|h:<HOSTNAME>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>|m:<SERVICE_CHECK_MESSAGE>
 func parseDogstatsdServiceCheckMsg(buf []byte) (dogstatsdMsg, error) {
 	serviceCheck := dogstatsdServiceCheck{
-		data:     buf,
-		ts:       time.Now(),
-		tags:     []string{},
-		extras:   []string{},
+		data:   buf,
+		ts:     time.Now(),
+		tags:   []string{},
+		extras: []string{},
 	}
 
 	pieces := strings.Split(string(buf), "|")

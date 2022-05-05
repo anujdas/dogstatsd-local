@@ -198,7 +198,7 @@ func TestParseDogstatsdServiceCheckMsg(t *testing.T) {
 			okServiceCheckStatusType,
 			time.Unix(10, 0),
 			"host.name",
-			[]string{"env:ci","key:1", "val"},
+			[]string{"env:ci", "key:1", "val"},
 			"Nothing to report",
 		},
 	}
